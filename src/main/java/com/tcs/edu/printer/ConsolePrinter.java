@@ -1,3 +1,6 @@
+
+package com.tcs.edu.printer;
+
 /**
  * The {@code ConsolePrinter} class contains single method for console output of passed value
  * @author Eugene Krivosheyev
