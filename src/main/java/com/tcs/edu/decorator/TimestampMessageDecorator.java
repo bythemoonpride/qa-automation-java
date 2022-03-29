@@ -16,6 +16,8 @@ public class TimestampMessageDecorator {
      * @param message string to be decorated with the current timestamp.
      */
     public static String decorate(String message){
-        return Instant.now() + " " + message;
+        String decoratedMessage;
+        decoratedMessage = Instant.now() + " " + message;
+        return decoratedMessage;
     }
 }
