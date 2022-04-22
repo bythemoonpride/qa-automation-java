@@ -1,5 +1,7 @@
 package com.tcs.edu.decorator;
 
+import com.tcs.edu.project_enum.Severity;
+
 /**
  * The {@code SeverityDecorator} class contains a method that allows to match the severity level and its string value
  * and returns string value of chosen severity level.
