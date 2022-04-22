@@ -13,21 +13,17 @@ public class SeverityDecorator {
      *
      * @param severity one of severity enum levels.
      */
-    public static String severityMapToString(Severity severity){
-        String severityString = null;
-
-        switch (severity){
+    public static String severityToString(Severity severity) {
+        switch (severity) {
             case MINOR:
-                severityString = "()";
-                break;
+                return "()";
             case REGULAR:
-                severityString = "(!)";
-                break;
+                return "(!)";
             case MAJOR:
-                severityString = "(!!!)";
-                break;
+                return "(!!!)";
+            default:
+                return  "Undefined severity";
         }
 
-        return severityString;
     }
 }
