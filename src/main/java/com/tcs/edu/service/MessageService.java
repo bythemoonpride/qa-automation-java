@@ -11,6 +11,7 @@ import static com.tcs.edu.decorator.PaginationDecorator.paginate;
 import static com.tcs.edu.decorator.SeverityDecorator.severityToString;
 import static com.tcs.edu.decorator.TimestampMessageDecorator.decorate;
 import static com.tcs.edu.project_enum.Doubling.*;
+import static com.tcs.edu.project_enum.MessageOrder.*;
 import static java.lang.String.format;
 
 /**
@@ -19,6 +20,8 @@ import static java.lang.String.format;
  * @author Anton Bezrukov
  */
 public class MessageService {
+    private static final MessageOrder DEFAULT_ORDER = ASC;
+    private static final Doubling DEFAULT_DOUBLING = DOUBLES;
 
     /**
      * Prints a decorated message string. Given message string decorates with the timestamp,
@@ -29,20 +32,10 @@ public class MessageService {
      * @param message  string to be decorated with the current timestamp, severity level, message counter.
      * @param messages varargs of strings to be decorated with the current timestamp, severity level, message counter.
      * @param level    one of severity enum levels.
+     * @see #process(Severity, MessageOrder, String, String...)
      */
     public static void process(Severity level, String message, String... messages) {
-
-        List<String> allMessages = new ArrayList<>();
-        allMessages.add(message);
-        if (messages != null) {
-            Collections.addAll(allMessages, messages);
-        }
-
-        for (String mess : allMessages) {
-            if (mess != null) {
-                ConsolePrinter.print(paginate(format("%s %s", decorate(mess), severityToString(level))));
-            }
-        }
+        process(level, DEFAULT_ORDER, message, messages);
     }
 
     /**
@@ -56,24 +49,10 @@ public class MessageService {
      * @param messages varargs of strings to be decorated with the current timestamp, severity level, message counter.
      * @param level    one of severity enum levels.
      * @param order    one of order enums.
+     * @see #process(Severity, MessageOrder, Doubling, String, String...)
      */
     public static void process(Severity level, MessageOrder order, String message, String... messages) {
-
-        List<String> allMessages = new ArrayList<>();
-        allMessages.add(message);
-
-        if (messages != null) {
-            Collections.addAll(allMessages, messages);
-        }
-
-        List<String> orderedMessages = getOrderedMessages(order, allMessages);
-
-        for (String mess : orderedMessages) {
-            if (mess != null) {
-
-                ConsolePrinter.print(paginate(format("%s %s", decorate(mess), severityToString(level))));
-            }
-        }
+        process(level, order, DEFAULT_DOUBLING, message, messages);
     }
 
     /**
@@ -101,10 +80,8 @@ public class MessageService {
 
         List<String> processedMessages = getDoublingProcessedMessages(doubling, getOrderedMessages(order, allMessages));
 
-
         for (String mess : processedMessages) {
             if (mess != null) {
-
                 ConsolePrinter.print(paginate(format("%s %s", decorate(mess), severityToString(level))));
             }
         }
@@ -143,6 +120,7 @@ public class MessageService {
                 for (String distMess : distinctArray) {
                     if (Objects.equals(distMess, mess)) {
                         isDoubling = true;
+                        break;
                     }
                 }
                 if (!isDoubling) {
