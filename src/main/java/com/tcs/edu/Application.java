@@ -27,6 +27,7 @@ class Application {
                 new Message(MINOR, "Hello2"),
                 new Message(REGULAR, "Hello2"),
                 null,
+                new Message(MINOR, null),
                 new Message(MINOR, "Hello5")
         );
     }

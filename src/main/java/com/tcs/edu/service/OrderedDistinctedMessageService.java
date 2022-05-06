@@ -95,7 +95,7 @@ public class OrderedDistinctedMessageService implements MessageService {
         List<Message> processedMessages = getDoublingProcessedMessages(doubling, getOrderedMessages(order, allMessages));
 
         for (Message mess : processedMessages) {
-            if (mess != null) {
+            if (mess != null && mess.getBody() != null) {
                 printer.print(messageDecorator.decorate(format("%s %s", mess.getBody(), mess.getSeverity().getLevel())));
             }
         }
