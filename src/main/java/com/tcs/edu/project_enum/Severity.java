@@ -7,7 +7,27 @@ package com.tcs.edu.project_enum;
  * {@link #MAJOR}
  */
 public enum Severity {
-    MINOR,
-    REGULAR,
-    MAJOR
+    MINOR ("()"),
+    REGULAR ("(!)"),
+    MAJOR ("(!!!)");
+
+    /**
+     * Message level
+     */
+    private final String level;
+
+    /**
+     * Constructor
+     * @param level level value
+     */
+    Severity(String level) {
+        this.level = level;
+    }
+
+    /**
+     * @return level string value
+     */
+    public String getLevel() {
+        return level;
+    }
 }

@@ -1,12 +1,13 @@
 package com.tcs.edu.decorator;
 
 /**
- * The {@code PaginationDecorator} class contains a message count field, constant for a page size and a method for decorating
+ * The {@code PaginationDecorator} class contains a message count field, constant for a page size and
+ * a method for decorating
  * a given string with the message count and the page separator.
  *
  * @author Anton Bezrukov
  */
-public class PaginationDecorator {
+public class PaginationDecorator implements MessageDecorator {
     /**
      * Counter of displayed messages.
      */
@@ -24,7 +25,7 @@ public class PaginationDecorator {
      *
      * @param message string to be decorated with the current timestamp and the separator.
      */
-    public static String paginate(String message) {
+    public String decorate(String message) {
         String messageTemplate = "%d %s";
         messageCount++;
         if (messageCount % PAGE_SIZE == 0) {
