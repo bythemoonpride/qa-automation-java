@@ -1,11 +1,14 @@
 package com.tcs.edu;
 
 import com.tcs.edu.service.MessageService;
-import static com.tcs.edu.decorator.Severity.REGULAR;
+
+import static com.tcs.edu.project_enum.Doubling.*;
+import static com.tcs.edu.project_enum.MessageOrder.*;
+import static com.tcs.edu.project_enum.Severity.*;
 
 class Application {
     public static void main(String[] args) {
-        MessageService.process(REGULAR, "Hello, world!0", "Hello, world!1", "Hello, world!2",
-                "Hello, world!3", "Hello, world!4", "Hello, world!5");
+        MessageService.process(REGULAR, DESC, DISTINCT,"Hello, world!",
+                "test1", "test2", "test3", null, "test4", "test3", "test1", "test7");
     }
 }

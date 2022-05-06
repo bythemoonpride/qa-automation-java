@@ -1,4 +1,4 @@
-package com.tcs.edu.decorator;
+package com.tcs.edu.project_enum;
 
 /**
  * Severity levels that can be used to decorate message strings.

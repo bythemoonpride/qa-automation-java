@@ -1,5 +1,7 @@
 package com.tcs.edu.decorator;
 
+import com.tcs.edu.project_enum.Severity;
+
 /**
  * The {@code SeverityDecorator} class contains a method that allows to match the severity level and its string value
  * and returns string value of chosen severity level.
@@ -13,21 +15,17 @@ public class SeverityDecorator {
      *
      * @param severity one of severity enum levels.
      */
-    public static String severityMapToString(Severity severity){
-        String severityString = null;
-
-        switch (severity){
+    public static String severityToString(Severity severity) {
+        switch (severity) {
             case MINOR:
-                severityString = "()";
-                break;
+                return "()";
             case REGULAR:
-                severityString = "(!)";
-                break;
+                return "(!)";
             case MAJOR:
-                severityString = "(!!!)";
-                break;
+                return "(!!!)";
+            default:
+                return  "Undefined severity";
         }
 
-        return severityString;
     }
 }
