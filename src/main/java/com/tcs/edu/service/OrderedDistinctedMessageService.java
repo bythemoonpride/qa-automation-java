@@ -18,7 +18,7 @@ import static java.lang.String.format;
  *
  * @author Anton Bezrukov
  */
-public class OrderedDistinctedMessageService implements MessageService {
+public class OrderedDistinctedMessageService extends ValidatedService {
     private static final MessageOrder DEFAULT_ORDER = ASC;
     private static final Doubling DEFAULT_DOUBLING = DOUBLES;
 
@@ -85,18 +85,22 @@ public class OrderedDistinctedMessageService implements MessageService {
      */
     public void process(MessageOrder order, Doubling doubling, Message message, Message... messages) {
 
-        List<Message> allMessages = new ArrayList<>();
-        allMessages.add(message);
+        if (isArgsValid(order, doubling)) {
+            List<Message> allMessages = new ArrayList<>();
+            allMessages.add(message);
 
-        if (messages != null) {
-            Collections.addAll(allMessages, messages);
-        }
+            if (messages != null) {
+                Collections.addAll(allMessages, messages);
+            }
 
-        List<Message> processedMessages = getDoublingProcessedMessages(doubling, getOrderedMessages(order, allMessages));
+            List<Message> processedMessages = getDoublingProcessedMessages(
+                    doubling, getOrderedMessages(order, allMessages));
 
-        for (Message mess : processedMessages) {
-            if (mess != null && mess.getBody() != null) {
-                printer.print(messageDecorator.decorate(format("%s %s", mess.getBody(), mess.getSeverity().getLevel())));
+            for (Message mess : processedMessages) {
+                if (mess != null && mess.getBody() != null) {
+                    printer.print(
+                            messageDecorator.decorate(format("%s %s", mess.getBody(), mess.getSeverity().getLevel())));
+                }
             }
         }
     }
@@ -127,23 +131,8 @@ public class OrderedDistinctedMessageService implements MessageService {
      */
     private static List<Message> getDoublingProcessedMessages(Doubling doubling, List<Message> messageList) {
         if (doubling == DISTINCT) {
-            Message[] distinctArray = new Message[messageList.size()];
-            boolean isDoubling = false;
-            int i = 0;
-            for (Message mess : messageList) {
-                for (Message distMess : distinctArray) {
-                    if (distMess != null && mess != null && Objects.equals(distMess.getBody(), mess.getBody())) {
-                        isDoubling = true;
-                        break;
-                    }
-                }
-                if (!isDoubling) {
-                    distinctArray[i] = mess;
-                    i++;
-                }
-                isDoubling = false;
-            }
-            messageList = Arrays.asList(distinctArray);
+            LinkedHashSet<Message> distinctSet = new LinkedHashSet<>(messageList);
+            messageList = new ArrayList<>(distinctSet);
         }
         return messageList;
     }
