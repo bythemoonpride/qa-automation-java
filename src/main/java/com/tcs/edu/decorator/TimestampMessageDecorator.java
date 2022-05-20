@@ -8,7 +8,7 @@ import java.time.Instant;
  *
  * @author Anton Bezrukov
  */
-public class TimestampMessageDecorator {
+public class TimestampMessageDecorator implements MessageDecorator{
 
 
     /**
@@ -16,7 +16,7 @@ public class TimestampMessageDecorator {
      *
      * @param message string to be decorated with the current timestamp.
      */
-    public static String decorate(String message) {
+    public String decorate(String message) {
 
         return Instant.now() + " " + message;
     }
