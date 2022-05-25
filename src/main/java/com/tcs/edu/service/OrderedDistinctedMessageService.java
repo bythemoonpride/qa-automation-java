@@ -85,22 +85,26 @@ public class OrderedDistinctedMessageService extends ValidatedService {
      */
     public void process(MessageOrder order, Doubling doubling, Message message, Message... messages) {
 
-        if (isArgsValid(order, doubling)) {
-            List<Message> allMessages = new ArrayList<>();
-            allMessages.add(message);
+        try {
+            isArgsValid(order, doubling);
+        } catch (IllegalArgumentException e){
+            throw new ProcessException("Message processing goes wrong...", e);
+        }
 
-            if (messages != null) {
-                Collections.addAll(allMessages, messages);
-            }
+        List<Message> allMessages = new ArrayList<>();
+        allMessages.add(message);
 
-            List<Message> processedMessages = getDoublingProcessedMessages(
-                    doubling, getOrderedMessages(order, allMessages));
+        if (messages != null) {
+            Collections.addAll(allMessages, messages);
+        }
 
-            for (Message mess : processedMessages) {
-                if (mess != null && mess.getBody() != null) {
-                    printer.print(
-                            messageDecorator.decorate(format("%s %s", mess.getBody(), mess.getSeverity().getLevel())));
-                }
+        List<Message> processedMessages = getDoublingProcessedMessages(
+                doubling, getOrderedMessages(order, allMessages));
+
+        for (Message mess : processedMessages) {
+            if (mess != null && mess.getBody() != null) {
+                printer.print(
+                        messageDecorator.decorate(format("%s %s", mess.getBody(), mess.getSeverity().getLevel())));
             }
         }
     }
@@ -113,14 +117,15 @@ public class OrderedDistinctedMessageService extends ValidatedService {
      * @param messageList list of messages to be sorted in order
      */
     private static List<Message> getOrderedMessages(MessageOrder order, List<Message> messageList) {
-        if (order == MessageOrder.DESC) {
-            Message[] orderedArray = new Message[messageList.size()];
-            for (int i = messageList.size() - 1; i >= 0; i--) {
-                orderedArray[i] = messageList.get(messageList.size() - 1 - i);
-            }
-            messageList = Arrays.asList(orderedArray);
+        if (order == ASC) {
+            return messageList;
         }
-        return messageList;
+
+        Message[] orderedArray = new Message[messageList.size()];
+        for (int i = messageList.size() - 1; i >= 0; i--) {
+            orderedArray[i] = messageList.get(messageList.size() - 1 - i);
+        }
+        return Arrays.asList(orderedArray);
     }
 
     /**
@@ -130,11 +135,11 @@ public class OrderedDistinctedMessageService extends ValidatedService {
      * @param messageList list of messages to be doubling processed.
      */
     private static List<Message> getDoublingProcessedMessages(Doubling doubling, List<Message> messageList) {
-        if (doubling == DISTINCT) {
-            LinkedHashSet<Message> distinctSet = new LinkedHashSet<>(messageList);
-            messageList = new ArrayList<>(distinctSet);
+        if (doubling == DOUBLES) {
+            return messageList;
         }
-        return messageList;
+        LinkedHashSet<Message> distinctSet = new LinkedHashSet<>(messageList);
+        return new ArrayList<>(distinctSet);
     }
 }
 
