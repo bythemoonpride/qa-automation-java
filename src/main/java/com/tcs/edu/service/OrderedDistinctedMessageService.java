@@ -1,145 +1,64 @@
 package com.tcs.edu.service;
 
-import com.tcs.edu.decorator.MessageDecorator;
-import com.tcs.edu.printer.Printer;
 import com.tcs.edu.domain.Message;
-import com.tcs.edu.project_enum.Doubling;
-import com.tcs.edu.project_enum.MessageOrder;
-
+import com.tcs.edu.project_enum.Severity;
+import com.tcs.edu.repository.MessageRepository;
 import java.util.*;
 
-import static com.tcs.edu.project_enum.Doubling.*;
-import static com.tcs.edu.project_enum.MessageOrder.*;
-import static java.lang.String.format;
 
-/**
- * The {@code OrderedDistinctedMessageService} class contains a methods for processing some messages.
- * The message must be decorated, sorted, processed according to the doubling strategy.
- *
- * @author Anton Bezrukov
- */
 public class OrderedDistinctedMessageService extends ValidatedService {
-    private static final MessageOrder DEFAULT_ORDER = ASC;
-    private static final Doubling DEFAULT_DOUBLING = DOUBLES;
 
-    /**
-     * Message decorator
-     */
-    private final MessageDecorator messageDecorator;
+    private final MessageRepository messageRepository;
 
-    /**
-     * Message printer
-     */
-    private final Printer printer;
-
-
-    /**
-     * Constructor
-     *
-     * @param messageDecorator decorator to be used to decorate message
-     * @param printer          to be used to print messages
-     */
-    public OrderedDistinctedMessageService(MessageDecorator messageDecorator, Printer printer) {
-        this.messageDecorator = messageDecorator;
-        this.printer = printer;
+    public OrderedDistinctedMessageService(MessageRepository messageRepository) {
+        this.messageRepository = messageRepository;
     }
 
-    /**
-     * Prints a decorated message string. Given message decorates with with chosen decorator.
-     * Printed rows are collected in pages of PaginationDecoration.PAGE_SIZE, pages separated by "---" separator.
-     * Null messages are skipped.
-     *
-     * @param message  message to be decorated with with chosen decorator.
-     * @param messages varargs of messages to be decorated with with chosen decorator.
-     * @see #process(MessageOrder, Message, Message...)
-     */
-    public void process(Message message, Message... messages) {
-        process(DEFAULT_ORDER, message, messages);
+
+    public UUID create(Message message) {
+        return messageRepository.create(message);
     }
 
-    /**
-     * Prints a decorated message strings. Given message decorates with chosen decorator.
-     * Printed rows are collected in pages of PaginationDecoration.PAGE_SIZE, pages separated by "---" separator.
-     * Null messages are skipped.
-     * It is possible to specify the order of the messages.
-     *
-     * @param message  message to be decorated with with chosen decorator.
-     * @param messages varargs of messages to be decorated with with chosen decorator.
-     * @param order    one of order enums, defines order of given messages.
-     * @see #process(MessageOrder, Doubling, Message, Message...)
-     */
-    public void process(MessageOrder order, Message message, Message... messages) {
-        process(order, DEFAULT_DOUBLING, message, messages);
+    @Override
+    public Message findById(UUID key) {
+        return messageRepository.findById(key);
     }
 
-    /**
-     * Prints a decorated message strings. Given message decorates with chosen decorator.
-     * Printed rows are collected in pages of PaginationDecoration.PAGE_SIZE, pages separated by "---" separator.
-     * Null messages are skipped.
-     * It is possible to specify the order of the messages.
-     *
-     * @param message  message to be decorated with with chosen decorator.
-     * @param messages varargs of messages to be decorated with with chosen decorator.
-     * @param order    one of order enums, defines order of given messages.
-     * @param doubling one of doubling enums, defines doubling strategy for given messages.
-     */
-    public void process(MessageOrder order, Doubling doubling, Message message, Message... messages) {
+    @Override
+    public Collection<Message> get(Severity severity) {
+        return messageRepository.findBySeverity(severity);
+    }
 
+    @Override
+    public Collection<Message> get(String body) {
+        return messageRepository.findByBody(body);
+    }
+
+    @Override
+    public Collection<Message> get(Severity severity, String body) {
         try {
-            isArgsValid(order, doubling);
-        } catch (IllegalArgumentException e){
-            throw new ProcessException("Message processing goes wrong...", e);
+            isArgsValid(severity, body);
+        } catch (IllegalArgumentException e) {
+            throw new ProcessException("Message getting goes wrong...", e);
         }
+        return messageRepository.findBySeverityAndBody(severity, body);
+    }
 
-        List<Message> allMessages = new ArrayList<>();
-        allMessages.add(message);
-
-        if (messages != null) {
-            Collections.addAll(allMessages, messages);
-        }
-
-        List<Message> processedMessages = getDoublingProcessedMessages(
-                doubling, getOrderedMessages(order, allMessages));
-
-        for (Message mess : processedMessages) {
-            if (mess != null && mess.getBody() != null) {
-                printer.print(
-                        messageDecorator.decorate(format("%s %s", mess.getBody(), mess.getSeverity().getLevel())));
-            }
-        }
+    @Override
+    public Collection<Message> get() {
+        return messageRepository.findAll();
     }
 
 
-    /**
-     * Returns a list of messages in chosen order.
-     *
-     * @param order       one of order enums.
-     * @param messageList list of messages to be sorted in order
-     */
-    private static List<Message> getOrderedMessages(MessageOrder order, List<Message> messageList) {
-        if (order == ASC) {
-            return messageList;
-        }
-
-        Message[] orderedArray = new Message[messageList.size()];
-        for (int i = messageList.size() - 1; i >= 0; i--) {
-            orderedArray[i] = messageList.get(messageList.size() - 1 - i);
-        }
-        return Arrays.asList(orderedArray);
+    @Override
+    public Message put(Message newMessage) {
+        return messageRepository.update(newMessage);
     }
 
-    /**
-     * Returns a list of messages in chosen doubling strategy
-     *
-     * @param doubling    one of doubling enums.
-     * @param messageList list of messages to be doubling processed.
-     */
-    private static List<Message> getDoublingProcessedMessages(Doubling doubling, List<Message> messageList) {
-        if (doubling == DOUBLES) {
-            return messageList;
-        }
-        LinkedHashSet<Message> distinctSet = new LinkedHashSet<>(messageList);
-        return new ArrayList<>(distinctSet);
+    @Override
+    public Message delete(UUID id) {
+        return messageRepository.delete(id);
     }
+
 }
 
