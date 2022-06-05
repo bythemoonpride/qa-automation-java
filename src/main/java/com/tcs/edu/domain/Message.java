@@ -1,14 +1,22 @@
 package com.tcs.edu.domain;
 
 import com.tcs.edu.project_enum.Severity;
-
+import com.tcs.edu.service.ProcessException;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * The {@code Message} class represents structure of message to be processed in implementations of MessageService interface.
+ *
  * @author Anton Bezrukov
  */
 public class Message {
+
+    /**
+     * Unique message id
+     */
+    private UUID id = null;
+
     /**
      * Message severity
      */
@@ -21,10 +29,16 @@ public class Message {
 
     /**
      * Constructor
+     *
      * @param severity message severity
-     * @param body string message body
+     * @param body     string message body
      */
     public Message(Severity severity, String body) {
+        try {
+            isArgsValid(severity, body);
+        } catch (IllegalArgumentException e) {
+            throw new ProcessException("Message creating goes wrong...", e);
+        }
         this.severity = severity;
         this.body = body;
     }
@@ -43,10 +57,22 @@ public class Message {
         return body;
     }
 
+    /**
+     * @return uuid id for message
+     */
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
         return "Message{" +
-                "severity = " + severity +
+                "id = " + id +
+                ", severity = " + severity +
                 ", body = '" + body + '\'' +
                 '}';
     }
@@ -62,5 +88,14 @@ public class Message {
     @Override
     public int hashCode() {
         return Objects.hash(severity, body);
+    }
+
+    boolean isArgsValid(Object... o) {
+        for (Object object : o) {
+            if (object == null) {
+                throw new IllegalArgumentException("One or more of given arguments are null");
+            }
+        }
+        return true;
     }
 }

@@ -19,18 +19,4 @@ public abstract class ValidatedService implements MessageService {
         }
         return true;
     }
-
-    /**
-     * Returns true if given argument is not null.
-     *
-     * @param o    some of arguments.
-     * @param name string name of given argument.
-     * @throws IllegalArgumentException if the specified argument is null.
-     */
-    boolean isArgsValid(Object o, String name) {
-        if (o == null) {
-            throw new IllegalArgumentException("Argument '" + name + "' is null");
-        }
-        return true;
-    }
 }

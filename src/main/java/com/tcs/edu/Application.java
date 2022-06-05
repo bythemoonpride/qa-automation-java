@@ -1,105 +1,81 @@
 package com.tcs.edu;
 
-import com.tcs.edu.decorator.TimestampPaginationDecorator;
 import com.tcs.edu.domain.Message;
-import com.tcs.edu.printer.ConsolePrinter;
-import com.tcs.edu.project_enum.Doubling;
-import com.tcs.edu.project_enum.MessageOrder;
+import com.tcs.edu.repository.HashMapMessageRepository;
 import com.tcs.edu.service.MessageService;
 import com.tcs.edu.service.OrderedDistinctedMessageService;
-import com.tcs.edu.service.ProcessException;
 
-import static com.tcs.edu.project_enum.Doubling.*;
-import static com.tcs.edu.project_enum.MessageOrder.*;
+import java.util.UUID;
+
 import static com.tcs.edu.project_enum.Severity.*;
 
 class Application {
     public static void main(String[] args) {
 
-        MessageService messageService = new OrderedDistinctedMessageService(
-                new TimestampPaginationDecorator(),
-                new ConsolePrinter()
-        );
+        MessageService messageService = new OrderedDistinctedMessageService(new HashMapMessageRepository());
 
-        messageService.process(
-                DESC,
-                DISTINCT,
-                new Message(REGULAR, "Hello0"),
-                new Message(MAJOR, "Hello1"),
-                new Message(MINOR, "Hello2"),
-                new Message(MINOR, "Hello2"),
-                new Message(MAJOR, "Hello1"),
-                new Message(REGULAR, "Hello2"),
-                null,
-                new Message(MINOR, null),
-                new Message(MINOR, "Hello3")
-        );
+//        Попытки создать Message с null вместо параметров
+//        UUID messageId000 = messageService.create(new Message(null, "Hello"));
+//        UUID messageId001 = messageService.create(new Message(REGULAR, null));
+//        UUID messageId002 = messageService.create(new Message(null, null));
 
-        System.out.println("\n\n");
-        System.out.println("Вывод сообщения, переданного на печать как объект:");
-        System.out.println(new Message(MINOR, "Hello!"));
+        //Создание
+        UUID messageId0 = messageService.create(new Message(REGULAR, "Hello"));
+        UUID messageId1 = messageService.create(new Message(REGULAR, "Hello!!!"));
+        UUID messageId2 = messageService.create(new Message(MINOR, "Hello"));
+        UUID messageId3 = messageService.create(new Message(MINOR, "Hello!!!"));
+        UUID messageId4 = messageService.create(new Message(MINOR, "I'll be deleted one day"));
+        UUID messageId5 = messageService.create(new Message(REGULAR, "I'll be updated one day"));
 
+        //Получение
+        System.out.println("Добавлены следующие сообщения:");
+        System.out.println(messageService.findById(messageId0));
+        System.out.println(messageService.findById(messageId1));
+        System.out.println(messageService.findById(messageId2));
+        System.out.println(messageService.findById(messageId3));
+        System.out.println(messageService.findById(messageId4));
+        System.out.println(messageService.findById(messageId5));
+        System.out.println("\n===========================================================\n");
 
-        Message message1 = new Message(MAJOR, "Hi");
-        Message message2 = new Message(MAJOR, "Hi");
-        Message message3 = new Message(MAJOR, "Hello there");
+        //Обновление
+        System.out.println("Обновлены следующие сообщения:");
+        Message messageForUpdate = new Message(MAJOR, "Now i am updated!!!");
+        messageForUpdate.setId(messageId5);
+        System.out.println(messageService.put(messageForUpdate));
+        System.out.println(messageService.findById(messageId5));
 
-        System.out.println("\n");
-        System.out.println("Сравнение сообщений, сообщения одинаковые?: " + message1.equals(message2));
-        System.out.println("Сравнение сообщений, сообщения одинаковые?: " + message1.equals(message3));
+        System.out.println("Попытка обновления сообщения с id, которого нет в HashMapMessageRepository:");
+        Message messageForUpdateRandomId = new Message(MAJOR, "Now i am updated!!!");
+        messageForUpdateRandomId.setId(UUID.randomUUID());
+        System.out.println(messageService.put(messageForUpdateRandomId));
 
-        System.out.println("\n");
-        System.out.println("Сравнение хэшкодов одинаковых сообщений, хэшкоды совпадают?:");
-        System.out.println(message1.hashCode() == message2.hashCode());
+        System.out.println("Попытка обновления сообщения с id = null:");
+        System.out.println(messageService.put(new Message(MAJOR, "Some body with NULL id")));
+        System.out.println("\n===========================================================\n");
 
-        System.out.println("Сравнение хэшкодов неодинаковых сообщений, хэшкоды совпадают?:");
-        System.out.println(message1.hashCode() == message3.hashCode());
+        //Удаление
+        System.out.println("Удаление сообщения:");
+        System.out.println(messageService.delete(messageId4));
+        System.out.println(messageService.findById(messageId4));
 
-        System.out.println("\n");
-        System.out.println("Хэшкод сообщения: " + message1.hashCode());
-        System.out.println("\n");
+        System.out.println("Попытка удаления сообщения, id которого нет в HashMapMessageRepository:");
+        System.out.println(messageService.delete(UUID.randomUUID()));
 
-        checkMessageServiceExceptions(ProcessException.class, null, DOUBLES);
-        checkMessageServiceExceptions(ProcessException.class, ASC, null);
-        checkMessageServiceExceptions(ProcessException.class, DESC, DISTINCT);
-        checkMessageServiceExceptions(IllegalArgumentException.class, ASC, null);
+        System.out.println("Попытка удаления сообщения c id = null");
+        System.out.println(messageService.delete(null));
+        System.out.println("\n===========================================================\n");
+
+        System.out.println("Фильтрация сообщений:");
+        System.out.println(messageService.get());
+        System.out.println(messageService.get(MINOR));
+        System.out.println(messageService.get("Hello"));
+        System.out.println(messageService.get(REGULAR, "Hello"));
+//        Попытка получения сообщений с null в параметрах фильтрации
+//        System.out.println(messageService.get(null, "Hello"));
+//        System.out.println(messageService.get(REGULAR, null));
+//        System.out.println(messageService.get(null, null));
+
 
     }
 
-    public static <T extends Exception> void checkMessageServiceExceptions(Class<T> expected,
-                                                                           MessageOrder order, Doubling doubling) {
-        MessageService messageService = new OrderedDistinctedMessageService(
-                new TimestampPaginationDecorator(),
-                new ConsolePrinter()
-        );
-        exceptionAssert(expected, () -> messageService.process(order, doubling, new Message(REGULAR, "Hello!")));
-    }
-
-    private static <T extends Exception> T exceptionAssert(Class<T> expected, Runnable runnable) {
-        T exception = null;
-        boolean isExceptionGetCaught = false;
-        try {
-            runnable.run();
-        } catch (Exception e) {
-            if (expected.isInstance(e)) {
-                System.out.println(
-                        String.format("Проверка успешно пройдена, ожидалось исключение %s, получили исключение %s.",
-                                expected.getSimpleName(), e.getClass().getSimpleName()));
-                exception = (T) e;
-            } else {
-                System.out.println(
-                        String.format("Проверка завершилась неудачей, " +
-                                        "ожидалось исключение %s, но получили исключение %s.",
-                                expected.getSimpleName(), e.getClass().getSimpleName()));
-            }
-            isExceptionGetCaught = true;
-        }
-
-        if (!isExceptionGetCaught) {
-            System.out.println(
-                    String.format("Проверка завершилась неудачей, ожидалось исключение %s, но ничего не получили.",
-                    expected.getSimpleName()));
-        }
-        return exception;
-    }
 }
