@@ -2,11 +2,18 @@ import io.restassured.RestAssured;
 import io.restassured.authentication.PreemptiveBasicAuthScheme;
 import org.junit.jupiter.api.*;
 
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import static io.restassured.RestAssured.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 public class ApiTest {
 
+    private static Connection connection;
     private final String COUNTRY_NAME = "YY";
     private final String INCORRECT_ID = "bad";
     private int createdCountryId;
@@ -27,26 +34,54 @@ public class ApiTest {
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
     }
 
+    @BeforeAll
+    public static void connect() throws SQLException {
+        connection = DriverManager.getConnection(
 
-    @BeforeEach
-    public void createCountryToTest() {
-        createdCountryId = given()
-                .contentType("application/json")
-                .body("{\n" +
-                        "  \"countryName\": \"" + COUNTRY_NAME + "\"\n" +
-                        "}")
-                .when()
-                .post("/api/countries")
-                .then()
-                .extract()
-                .path("id");
-        notExistingCountryId = createdCountryId + 999;
+                "jdbc:postgresql://localhost/app-db",
+                "app-db-admin",
+                "P@ssw0rd"
+        );
     }
 
+    @BeforeEach
+    public void createCountryInDb() throws SQLException {
+        int biggestId = -1;
+        Statement sqlSelect = connection.createStatement();
+        ResultSet resultSet = sqlSelect.executeQuery("SELECT * FROM country order by id desc limit 1");
+        if (resultSet.next()) {
+            biggestId = resultSet.getInt(1);
+        }
+        createdCountryId = biggestId + 1;
+        notExistingCountryId = createdCountryId + 999;
+
+        PreparedStatement sqlInsert = connection.prepareStatement(
+                "INSERT INTO country(id, country_name) VALUES(?,?)"
+        );
+        sqlInsert.setInt(1, createdCountryId);
+        sqlInsert.setString(2, COUNTRY_NAME);
+        sqlInsert.executeUpdate();
+    }
+
+
     @AfterEach
-    public void deleteCreatedCountryToTest() {
-        delete("/api/countries/" + createdCountryId);
-        delete("/api/countries/" + uniqueCountryId);
+    public void deleteCreatedCountryToTest() throws SQLException {
+        PreparedStatement sqlDeleteCreatedCountry = connection.prepareStatement(
+                "delete from country where id =?"
+        );
+        sqlDeleteCreatedCountry.setInt(1, createdCountryId);
+        sqlDeleteCreatedCountry.executeUpdate();
+
+        PreparedStatement sqlDeleteUniqueCountry = connection.prepareStatement(
+                "delete from country where id =?"
+        );
+        sqlDeleteUniqueCountry.setInt(1, uniqueCountryId);
+        sqlDeleteUniqueCountry.executeUpdate();
+    }
+
+    @AfterAll
+    public static void disconnect() throws SQLException {
+        connection.close();
     }
 
 
@@ -55,7 +90,7 @@ public class ApiTest {
     class PostMethodTest {
 
         @Test
-        public void createUniqueCountry() {
+        public void createUniqueCountry() throws SQLException {
             uniqueCountryId = given()
                     .contentType("application/json")
                     .body("{\n" +
@@ -68,23 +103,27 @@ public class ApiTest {
                     .body("id", not(empty()))
                     .extract()
                     .path("id");
-            when()
-                    .get("/api/countries/" + uniqueCountryId)
-                    .then()
-                    .body("id", is(uniqueCountryId),
-                            "countryName", is("UN"),
-                            "locations", nullValue());
+
+
+            Collection<Integer> countryIds = new ArrayList<>();
+
+            Statement sql = connection.createStatement();
+            ResultSet resultSet = sql.executeQuery("SELECT * FROM country WHERE country_name = 'UN'");
+            while (resultSet.next()) {
+                countryIds.add(resultSet.getInt(1));
+            }
+            assertThat(countryIds.size(), is(1));
+            assertThat(countryIds, hasItem(uniqueCountryId));
         }
 
         @Test
-        public void createNotUniqueCountry() {
-            given()
-                    .contentType("application/json")
-                    .body("{\n" +
-                            "  \"countryName\": \"ZZ\"\n" +
-                            "}")
-                    .when()
-                    .post("/api/countries");
+        public void createNotUniqueCountry() throws SQLException {
+            PreparedStatement sqlUpdate = connection.prepareStatement(
+                    "UPDATE public.country SET country_name = 'ZZ' WHERE id = ?"
+            );
+            sqlUpdate.setInt(1, createdCountryId);
+            sqlUpdate.executeUpdate();
+
             given()
                     .contentType("application/json")
                     .body("{\n" +
@@ -135,6 +174,7 @@ public class ApiTest {
         }
 
         @Test
+        @Disabled
         public void creatingCountryWithoutRequestBody() {
             given()
                     .contentType("application/json")
@@ -207,7 +247,7 @@ public class ApiTest {
     class PatchMethodTest {
 
         @Test
-        public void patchingCountry() {
+        public void patchingCountry() throws SQLException {
             given()
                     .contentType("application/json")
                     .body("{\n" +
@@ -221,13 +261,16 @@ public class ApiTest {
                     .body("id", is(createdCountryId),
                             "countryName", is("PA"),
                             "locations", nullValue());
-            when()
-                    .get("/api/countries/" + createdCountryId)
-                    .then()
-                    .statusCode(200)
-                    .body("id", is(createdCountryId),
-                            "countryName", is("PA"),
-                            "locations", nullValue());
+
+            Collection<Integer> countryIds = new ArrayList<>();
+
+            Statement sql = connection.createStatement();
+            ResultSet resultSet = sql.executeQuery("SELECT * FROM country WHERE country_name = 'PA'");
+            while (resultSet.next()) {
+                countryIds.add(resultSet.getInt(1));
+            }
+            assertThat(countryIds.size(), is(1));
+            assertThat(countryIds, hasItem(createdCountryId));
         }
 
         @Test
@@ -290,8 +333,7 @@ public class ApiTest {
                     .when()
                     .patch("/api/countries/" + createdCountryId)
                     .then()
-                    .statusCode(500)
-                    .body("detail", containsString("Could not commit JPA transaction"));
+                    .statusCode(500);
         }
 
         @Test
@@ -312,8 +354,8 @@ public class ApiTest {
                     .when()
                     .patch("/api/countries/" + createdCountryId)
                     .then()
-                    .statusCode(500)
-                    .body("detail", containsString("could not execute batch"));
+                    .statusCode(500);
+
         }
 
     }
@@ -323,16 +365,20 @@ public class ApiTest {
     class DeleteMethodTest {
 
         @Test
-        public void deleteCountry() {
+        public void deleteCountry() throws SQLException {
             when()
                     .delete("/api/countries/" + createdCountryId)
                     .then()
                     .statusCode(204);
-            when()
-                    .get("/api/countries/" + createdCountryId)
-                    .then()
-                    .statusCode(404)
-                    .body("title", is("Not Found"));
+
+            Collection<Integer> countryIds = new ArrayList<>();
+
+            Statement sql = connection.createStatement();
+            ResultSet resultSet = sql.executeQuery("SELECT * FROM country WHERE id = '" + createdCountryId + "'");
+            while (resultSet.next()) {
+                countryIds.add(resultSet.getInt(1));
+            }
+            assertThat(countryIds.size(), is(0));
         }
 
         @Test
@@ -340,9 +386,7 @@ public class ApiTest {
             when()
                     .delete("/api/countries/" + notExistingCountryId)
                     .then()
-                    .statusCode(500)
-                    .body("detail", is("No class com.tinkoff.edu.domain.Country entity with id " +
-                            notExistingCountryId + " exists!"));
+                    .statusCode(500);
         }
 
         @Test
@@ -354,6 +398,25 @@ public class ApiTest {
                     .body("title", is("Bad Request"));
         }
 
+    }
+
+
+    @Test @Disabled
+    //Вариант работы с инсертом в бд записи о стране, когда id записи автогенерируемый
+    public void insertCountryWhenIdIsAutogenerated() throws SQLException {
+        PreparedStatement sql = connection.prepareStatement(
+                "INSERT INTO country(country_name) VALUES(?)",
+                Statement.RETURN_GENERATED_KEYS
+        );
+        sql.setString(1, "ZZ");
+        sql.executeUpdate();
+
+        List<Integer> countryIds = new ArrayList<>();
+        ResultSet keys = sql.getGeneratedKeys();
+        while (keys.next()) {
+            countryIds.add(keys.getInt(1));
+        }
+        createdCountryId = countryIds.get(0);
     }
 
 }
